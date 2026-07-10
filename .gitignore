@@ -1,0 +1,21 @@
+# 백업 / 이전 버전 (배포 불필요)
+passport-helper-v1.bak.html
+passport-helper-v1.bak-*.html
+passport-helper-v1.prev-*.html
+
+# 임시 · 테스트 산출물
+_*.html
+_*.png
+_*.pdf
+_*.js
+_hwpx/
+_hwpx_consent/
+
+# 로컬 설정 (개인 환경)
+.claude/settings.local.json
+
+# OS / 에디터
+Thumbs.db
+Desktop.ini
+.DS_Store
+node_modules/
