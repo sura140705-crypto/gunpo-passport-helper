@@ -263,6 +263,14 @@
   }
   .text-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(43,127,255,.22);}
 
+  /* 신청인 단계 실시간 나이/미성년 표시 */
+  .age-status{font-size:15px;margin:-4px 0 14px;line-height:1.5;}
+  .age-status:empty{margin:0;}
+  .age-status.ok{color:#1b7a34;font-weight:600;}
+  .age-status.bad{color:#c0392b;font-weight:600;}
+  .age-status.minor{background:#fff8e1;border:1px solid #ffdf8a;color:#6b4e00;
+    border-radius:10px;padding:11px 13px;}
+
   /* ===== 법정대리인 동의서(2쪽) — 미성년자 대리 신청 시에만 표시/인쇄 ===== */
   .consent-page{display:none;}
   body.needs-consent .consent-page{display:block;}
@@ -1183,6 +1191,7 @@ function renderStep(){
 
     if(def.suggestRoman) h+=buildRomanSuggestion();
     (def.inputs||[]).forEach(function(inp){ h+=renderInput(inp); });
+    if(def.section==="신청인") h+='<div class="age-status" id="ageStatus" aria-live="polite"></div>';  // 주민번호 기반 실시간 나이/미성년 표시
     (def.groups||[]).forEach(function(g){ h+=renderGroup(g); });        // inputs → groups → condInputs 순
     (def.condInputs||[]).forEach(function(inp){ if(!inp.cond||inp.cond(state.data)) h+=renderInput(inp); }); // 조건부 입력은 그룹 선택 뒤(예: 대리인 선택 후 성명)
     if(def.note && def.note.when(state.data)){
@@ -1207,6 +1216,7 @@ function renderStep(){
   renderStepper();
   updateNav();
   updateWarning();
+  updateAgeStatus();
 }
 
 // 확인·완료 단계
@@ -1266,6 +1276,16 @@ function updateWarning(){
   const missing=stepRequired(def).filter(function(f){ return !state.data[f]; });
   el.stepWarn.textContent = missing.length===0 ? "" :
     "아직 입력하지 않은 필수 항목이 있어요 (계속 진행할 수는 있습니다).";
+}
+/* 신청인 단계: 주민등록번호로 판정한 나이·미성년 여부를 실시간 표시(입력칸 재렌더 없이 이 요소만 갱신) */
+function updateAgeStatus(){
+  var elA=document.getElementById("ageStatus"); if(!elA) return;
+  var j=String(state.data.jumin||"").replace(/\D/g,"");
+  if(j.length<7){ elA.className="age-status"; elA.innerHTML=""; return; }   // 아직 세기/성별 자리 전
+  var s=deriveState(state.data);
+  if(!s.ageKnown){ elA.className="age-status bad"; elA.innerHTML="⚠ 나이를 인식하지 못했습니다 — 생년월일·번호를 다시 확인해 주세요."; return; }
+  if(s.isMinor) elA.className="age-status minor", elA.innerHTML="👶 만 <b>"+s.ageYears+"세</b> · <b>미성년자</b>로 확인 — 유효기간 5년이 자동 적용되고, 인쇄 시 「법정대리인 동의서」가 함께 출력됩니다.";
+  else elA.className="age-status ok", elA.innerHTML="✓ 만 <b>"+s.ageYears+"세</b> (성인)";
 }
 
 /* =========================================================
@@ -1331,7 +1351,9 @@ function bindWizardEvents(){
     if(mask){ v=applyMask(mask,v); if(input.value!==v) input.value=v; }
     else if(input.getAttribute("data-upper")){ v=v.toUpperCase(); if(input.value!==v) input.value=v; }
     state.data[input.getAttribute("data-field")]=v;
+    applyAgeRules();       // 주민번호 입력 즉시 나이 규칙 반영(미성년→5년 강제 등)
     renderForm();
+    updateAgeStatus();     // 미성년/나이 실시간 표시
     updateWarning();
   });
 }
