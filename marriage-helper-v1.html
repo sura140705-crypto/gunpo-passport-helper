@@ -759,9 +759,10 @@ function fillSample(kind){
     attend_h:true, attend_w:true, cohabitDate:"2025.12.01"
   });
   if(kind==="minor"){
-    // 남편을 미성년(만 15세)으로 → ⑧ 동의자란에 ② 부모(김철수·이순자)가 자동 표시됨
-    state.h_jumin="1103153000000"; state.h_birth="2011.03.15";
-    state.h_marType="초혼";
+    // 아슬아슬한 미성년 부부: 남편 만 18세(성년 1년 전)·아내 만 17세(성년 2년 전)
+    // → ⑧ 동의자란에 양쪽 ② 부모가 자동 표시됨 (기준일 2026-07-14)
+    state.h_jumin="0801153000000"; state.h_birth="2008.01.15";
+    state.w_jumin="0903204000000"; state.w_birth="2009.03.20";
   }
   renderAll(); scrollTop();
 }
