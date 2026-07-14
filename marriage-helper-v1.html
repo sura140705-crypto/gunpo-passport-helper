@@ -340,8 +340,13 @@ function buildVals(){
    "w_surKor","w_givenKor","w_surHan","w_givenHan","w_bon","w_birth","w_regBase","w_addr",
    "h_fName","h_fRegBase","h_mName","h_mRegBase","w_fName","w_fRegBase","w_mName","w_mRegBase",
    "etc","wit1_name","wit1_addr","wit2_name","wit2_addr",
-   "h_cFather","h_cMother","h_gName","w_cFather","w_cMother","w_gName","sub_name"
+   "h_gName","w_gName","sub_name"
   ].forEach(function(k){ v[k]=d[k]||""; });
+  // ⑧ 동의자: 미성년자가 혼인하는 경우에만, ② 부모(양부모)에 적은 이름을 그대로 사용
+  v.h_cFather = isMinor("h") ? (d.h_fName||"") : "";
+  v.h_cMother = isMinor("h") ? (d.h_mName||"") : "";
+  v.w_cFather = isMinor("w") ? (d.w_fName||"") : "";
+  v.w_cMother = isMinor("w") ? (d.w_mName||"") : "";
   // 전화 포맷
   v.h_phone=formatPhone(d.h_phone); v.w_phone=formatPhone(d.w_phone);
   // 주민번호 6-7 분할 (인쇄된 '-' 좌우로 배치)
@@ -383,15 +388,19 @@ function renderForm(){
   // 현재 단계 강조(맨 밑에 깔림)
   h+=stepHighlights(X,Y);
 
-  // 형광펜: 인쇄 후 날인·서명해야 하는 칸 (혼인당사자 본인 ①, 증인 2명 ⑦; 미성년이면 동의자 ⑧)
-  var HI=[
-    [282,106,342,145],  // ① 남편(부) ㊞ 또는 서명
-    [468,106,528,145],  // ① 아내(처) ㊞ 또는 서명
-    [258,405,320,421],  // ⑦ 증인1 ㊞ 또는 서명
-    [258,438,320,454]   // ⑦ 증인2 ㊞ 또는 서명
-  ];
-  if(isMinor("h")){ HI.push([254,471,342,488],[254,488,342,504]); }  // ⑧ 남편 측 부·모 동의
-  if(isMinor("w")){ HI.push([254,504,342,521],[254,521,342,538]); }  // ⑧ 아내 측 부·모 동의
+  // 형광펜: 인쇄 후 날인·서명해야 하는 칸 — 해당 칸에 내용이 있을 때만 표시
+  var HI=[];
+  if(v.h_surKor||v.h_givenKor) HI.push([282,106,342,145]);  // ① 남편(부) 서명
+  if(v.w_surKor||v.w_givenKor) HI.push([468,106,528,145]);  // ① 아내(처) 서명
+  if(v.wit1_name) HI.push([258,405,320,421]);  // ⑦ 증인1 서명
+  if(v.wit2_name) HI.push([258,438,320,454]);  // ⑦ 증인2 서명
+  // ⑧ 동의자(부모, 미성년 시 ②에서 자동) + 후견인 — 내용 있을 때만
+  if(v.h_cFather) HI.push([254,472,315,488]);  // ⑧ 남편 측 부
+  if(v.h_cMother) HI.push([254,488,315,504]);  // ⑧ 남편 측 모
+  if(v.w_cFather) HI.push([254,505,315,521]);  // ⑧ 아내 측 부
+  if(v.w_cMother) HI.push([254,522,315,538]);  // ⑧ 아내 측 모
+  if(v.h_gName) HI.push([470,472,528,488]);    // 후견인(남편)
+  if(v.w_gName) HI.push([470,505,528,521]);    // 후견인(아내)
   HI.forEach(function(b){
     h+='<span class="ovhi" style="left:'+X(b[0])+'%;top:'+Y(b[1])+'%;width:'+
        ((b[2]-b[0])/PW*100).toFixed(2)+'%;height:'+((b[3]-b[1])/PH*100).toFixed(2)+'%;"></span>';
@@ -442,9 +451,10 @@ function personFields(p){
     {k:p+"_givenHan", label:"이름(한자)", ph:"英洙", half:true},
     {k:p+"_bon", label:"본(한자)", ph:"金海 (본관)", help:"성씨의 본관을 한자로 적습니다. 모르면 비워 두세요."},
     {k:p+"_phone", label:"전화번호", type:"phone", ph:"010-0000-0000"},
-    {k:p+"_birth", label:"출생연월일", type:"date", ph:"1990.01.01", help:"숫자 8자리를 적으면 자동으로 정리됩니다."},
     {k:p+"_jumin", label:"주민등록번호", type:"jumin", ph:"900101-0000000", req:true,
       help:"외국인은 외국인등록번호를 적습니다."},
+    {k:p+"_birth", label:"출생연월일", type:"date", ph:"1990.01.01",
+      help:"주민등록번호를 입력하면 자동으로 채워집니다. 실제와 다르면 고쳐 주세요."},
     {k:p+"_regBase", label:"등록기준지", req:true, ph:"경기도 군포시 …",
       help:"가족관계등록부의 기준이 되는 주소입니다. 외국인은 국적을 적습니다."},
     {k:p+"_addr", label:"주소", req:true, ph:"경기도 군포시 …", help:"현재 살고 있는 주소(주민등록 주소)."}
@@ -572,19 +582,13 @@ function renderStepBody(step){
     h+='<div class="q-help">신고인이 아닌 다른 사람이 제출할 때만 적습니다.</div>';
     h+=inputHtml({k:"sub_name", label:"제출인 성명", half:true});
     h+=inputHtml({k:"sub_jumin", label:"제출인 주민등록번호", type:"jumin", half:true})+'</div>';
-    // ⑧ 동의자 (미성년일 때 안내)
+    // ⑧ 동의자 (미성년일 때 안내) — ② 부모(양부모) 입력 내용을 그대로 사용
     var minorH=isMinor("h"), minorW=isMinor("w");
     if(minorH||minorW){
-      h+='<div class="note-box">⑧ 미성년자가 혼인하는 경우 <b>부모(또는 후견인)의 동의</b>가 필요합니다. '
-        +'아래에 동의자 성명을 적어 주세요. (서명·날인은 인쇄 후 직접)</div>';
-      if(minorH){
-        h+=inputHtml({k:"h_cFather", label:"남편 측 — 아버지 성명", half:true});
-        h+=inputHtml({k:"h_cMother", label:"남편 측 — 어머니 성명", half:true});
-      }
-      if(minorW){
-        h+=inputHtml({k:"w_cFather", label:"아내 측 — 아버지 성명", half:true});
-        h+=inputHtml({k:"w_cMother", label:"아내 측 — 어머니 성명", half:true});
-      }
+      var who=[minorH?"남편(부)":"", minorW?"아내(처)":""].filter(Boolean).join("·");
+      h+='<div class="note-box">⑧ 미성년자('+who+')가 혼인하는 경우 <b>부모(또는 후견인)의 동의</b>가 필요합니다. '
+        +'<b>② 부모(양부모)</b>에 입력한 이름이 동의자란에 자동으로 표시됩니다. '
+        +'인쇄한 뒤 부모님(또는 후견인)께서 직접 서명·날인해 주세요.</div>';
     }
   }
   else if(def.kind==="summary"){
