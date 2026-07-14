@@ -3,12 +3,205 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="refresh" content="0; url=passport-helper-v1.html">
-<link rel="canonical" href="passport-helper-v1.html">
-<title>여권발급신청서 작성 미리보기 도우미</title>
-<meta name="description" content="군포시 민원실 여권발급신청서 작성 도우미 — 어르신 친화, 서식 위 자동 배치, 무저장(메모리 전용)">
+<title>군포시 민원 서식 작성 도우미</title>
+<meta name="description" content="군포시 민원실 서식 작성 도우미 — 여권·가족관계등록 신고서·증명서 발급. 어르신 친화, 무저장(메모리 전용).">
+<!--
+  군포시 민원 서식 작성 도우미 — 허브(메뉴) 페이지
+  - 단일 HTML · 외부 서버/라이브러리/CDN/폰트/이미지 없음
+  - 입력값을 다루지 않는 안내·이동 전용 페이지 (개별 도우미가 메모리 전용으로 처리)
+  - 각 서식 도우미로 이동하는 카드 목록
+-->
+<style>
+  :root{
+    --blue:#1b5fc0; --blue-dark:#164e9e; --blue-light:#eaf1fb;
+    --line:#d5d9df; --bg:#f2f4f7; --muted:#5b626c; --ink:#1a1c1f;
+    --ok:#1a7f4b; --ok-bg:#e7f6ee; --ok-line:#b4e0c6;
+    --soon:#8a6d1f; --soon-bg:#fff6e0; --soon-line:#f0d79a;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:"Malgun Gothic","맑은 고딕",system-ui,-apple-system,sans-serif;
+    font-size:17px;line-height:1.55;
+  }
+
+  /* ===== 상단 바 ===== */
+  .topbar{
+    display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;
+    padding:14px 22px;background:#fff;border-bottom:2px solid var(--blue);
+    position:sticky;top:0;z-index:20;
+  }
+  .brand{display:flex;flex-direction:column;margin-right:auto;}
+  .brand h1{margin:0;font-size:21px;color:var(--blue-dark);}
+  .brand .meta{font-size:14px;color:var(--muted);margin-top:2px;}
+
+  /* ===== 본문 ===== */
+  .wrap{max-width:1080px;margin:0 auto;padding:26px 22px 60px;}
+  .hero{background:#fff;border:1px solid var(--line);border-radius:16px;
+    padding:22px 24px;margin-bottom:26px;box-shadow:0 3px 14px rgba(0,0,0,.05);}
+  .hero h2{margin:0 0 8px;font-size:24px;color:var(--ink);line-height:1.35;}
+  .hero p{margin:0;font-size:17px;color:var(--muted);line-height:1.65;}
+
+  .sec{margin-bottom:30px;}
+  .sec-head{display:flex;align-items:baseline;gap:10px;margin:0 0 14px;padding-bottom:8px;
+    border-bottom:2px solid var(--blue-light);}
+  .sec-head h3{margin:0;font-size:20px;color:var(--blue-dark);}
+  .sec-head .sec-sub{font-size:14px;color:var(--muted);}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+
+  /* ===== 서비스 카드 ===== */
+  .card{display:flex;gap:16px;align-items:flex-start;text-decoration:none;color:inherit;
+    background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:20px;
+    box-shadow:0 2px 8px rgba(0,0,0,.04);transition:transform .12s,box-shadow .12s,border-color .12s;}
+  a.card:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(27,95,192,.16);
+    border-color:var(--blue);}
+  a.card:focus-visible{outline:3px solid var(--blue);outline-offset:2px;}
+  .card.soon{cursor:default;opacity:.82;}
+  .card .icon{flex:none;width:54px;height:54px;border-radius:12px;display:flex;
+    align-items:center;justify-content:center;font-size:30px;background:var(--blue-light);}
+  .card.soon .icon{background:#eef1f5;filter:grayscale(.35);}
+  .card .body{min-width:0;flex:1;}
+  .card .title{font-size:19px;font-weight:800;margin:0 0 4px;line-height:1.3;}
+  .card .desc{font-size:15px;color:var(--muted);line-height:1.55;margin:0;}
+  .card .foot{margin-top:12px;display:flex;align-items:center;gap:8px;}
+  .badge{font-size:12.5px;font-weight:700;border-radius:20px;padding:3px 11px;white-space:nowrap;}
+  .badge.ok{color:var(--ok);background:var(--ok-bg);border:1px solid var(--ok-line);}
+  .badge.soon{color:var(--soon);background:var(--soon-bg);border:1px solid var(--soon-line);}
+  .go{margin-left:auto;font-size:15px;font-weight:700;color:var(--blue);}
+  .card.soon .go{display:none;}
+
+  /* ===== 하단 안내 ===== */
+  .notice{background:#fff;border:1px solid var(--line);border-radius:14px;
+    padding:18px 22px;margin-top:8px;}
+  .notice h3{margin:0 0 10px;font-size:17px;color:var(--blue-dark);}
+  .notice ul{margin:0;padding-left:20px;}
+  .notice li{font-size:15.5px;color:#333;line-height:1.7;}
+
+  :focus-visible{outline:3px solid var(--blue);outline-offset:2px;}
+
+  @media (max-width:640px){
+    .brand h1{font-size:18px;}
+    .hero h2{font-size:20px;}
+    .grid{grid-template-columns:1fr;}
+  }
+</style>
 </head>
-<body style="font-family:'Malgun Gothic',sans-serif;padding:40px;font-size:18px;">
-<p>작성 도우미로 이동합니다… 자동으로 넘어가지 않으면 <a href="passport-helper-v1.html">여기</a>를 눌러 주세요.</p>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <h1>군포시 민원 서식 작성 도우미</h1>
+    <div class="meta"><span id="orgName"></span> · <span id="today"></span></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h2>어떤 서식을 작성하시나요?</h2>
+    <p>아래에서 필요한 서식을 고르면, 한 단계씩 쉬운 안내를 따라 작성할 수 있습니다.
+       완성된 서식은 인쇄하거나 PDF로 저장해 민원실에 제출하세요.</p>
+  </section>
+
+  <div id="cards"></div>
+
+  <div class="notice">
+    <h3>이용 안내</h3>
+    <ul>
+      <li>본 도구는 서식 작성을 돕기 위한 <b>미리보기 도구</b>입니다. 공식 신청서와 항목·배치가 다를 수 있습니다.</li>
+      <li>입력한 내용은 <b>서버로 전송되지 않으며 저장되지 않습니다.</b> 브라우저를 새로고침하면 사라집니다.</li>
+      <li>실제 접수 가능 여부와 필요 서류는 담당 직원의 확인을 따릅니다.</li>
+      <li>공용 PC에서 사용한 후에는 창을 닫아 개인정보가 남지 않도록 해 주세요.</li>
+      <li>출력물에는 개인정보가 포함되므로 본인이 직접 수령·관리해야 합니다.</li>
+    </ul>
+  </div>
+</main>
+
+<script>
+"use strict";
+
+/* 지자체 교체용 설정 */
+var ORG_CONFIG = {
+  orgName:"경기도 군포시", officeName:"군포시청 민원실"
+};
+
+/* 서비스 목록 (섹션별). href 있으면 이용 가능, 없으면 준비 중.
+   새 도우미를 완성하면 해당 항목에 href만 채우면 바로 연결됩니다. */
+var SECTIONS = [
+  {
+    title:"여권",
+    sub:"여권 발급 신청",
+    items:[
+      { icon:"🛂", title:"여권발급신청서", desc:"신규·재발급 신청서 작성 안내. 로마자 성명, 사증 면수·유효기간, 미성년자 동의서·위임장까지 도와드립니다.", href:"passport-helper-v1.html" }
+    ]
+  },
+  {
+    title:"가족관계등록 신고",
+    sub:"출생·혼인·이혼·사망·개명 신고서",
+    items:[
+      { icon:"💍", title:"혼인신고서", desc:"혼인당사자·증인 2인·부모 정보 등 혼인신고서 작성 안내.", href:"marriage-helper-v1.html" },
+      { icon:"👶", title:"출생신고서", desc:"출생자·부모·신고인 정보와 등록기준지 안내.", href:null },
+      { icon:"🕊️", title:"사망신고서", desc:"사망자·신고인·사망 일시와 장소 안내.", href:null },
+      { icon:"✍️", title:"개명 신고", desc:"이름을 바꾸는 개명 허가·신고 안내.", href:null },
+      { icon:"📄", title:"이혼신고서", desc:"협의·재판상 이혼 구분과 신고 안내.", href:null }
+    ]
+  },
+  {
+    title:"증명서 발급",
+    sub:"가족관계·기본·혼인관계 등 각종 증명서",
+    items:[
+      { icon:"🧾", title:"증명서 발급신청", desc:"가족관계·기본·혼인관계·입양·친양자 증명서 발급을 한 곳에서 신청.", href:null }
+    ]
+  }
+];
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+
+function formatDate(d){
+  var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), day=String(d.getDate()).padStart(2,"0");
+  var w=["일","월","화","수","목","금","토"][d.getDay()];
+  return y+"년 "+m+"월 "+day+"일 ("+w+")";
+}
+
+function cardHtml(it){
+  var ready = !!it.href;
+  var tag = ready ? "a" : "div";
+  var attr = ready ? ' href="'+esc(it.href)+'"' : ' aria-disabled="true"';
+  var badge = ready
+    ? '<span class="badge ok">이용 가능</span>'
+    : '<span class="badge soon">준비 중</span>';
+  var go = ready ? '<span class="go">작성하기 →</span>' : '';
+  return '<'+tag+' class="card'+(ready?"":" soon")+'"'+attr+'>'
+    + '<div class="icon" aria-hidden="true">'+it.icon+'</div>'
+    + '<div class="body">'
+    +   '<p class="title">'+esc(it.title)+'</p>'
+    +   '<p class="desc">'+esc(it.desc)+'</p>'
+    +   '<div class="foot">'+badge+go+'</div>'
+    + '</div>'
+    + '</'+tag+'>';
+}
+
+function render(){
+  var html="";
+  for(var i=0;i<SECTIONS.length;i++){
+    var s=SECTIONS[i];
+    html += '<section class="sec">'
+      + '<div class="sec-head"><h3>'+esc(s.title)+'</h3>'
+      +   '<span class="sec-sub">'+esc(s.sub)+'</span></div>'
+      + '<div class="grid">';
+    for(var j=0;j<s.items.length;j++) html += cardHtml(s.items[j]);
+    html += '</div></section>';
+  }
+  document.getElementById("cards").innerHTML = html;
+}
+
+function init(){
+  document.getElementById("orgName").textContent = ORG_CONFIG.orgName;
+  document.getElementById("today").textContent = formatDate(new Date());
+  render();
+}
+init();
+</script>
 </body>
 </html>
