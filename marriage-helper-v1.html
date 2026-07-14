@@ -181,7 +181,8 @@
   </div>
   <div class="actions">
     <a class="btn ghost" href="index.html" title="민원 서식 목록으로 돌아갑니다">← 서식 목록</a>
-    <button class="btn ghost hide-m" id="btnSample">작성예시<span class="test-tag">테스트용</span></button>
+    <button class="btn ghost hide-m" id="btnSampleAdult">작성예시(성인)<span class="test-tag">테스트용</span></button>
+    <button class="btn ghost hide-m" id="btnSampleMinor">작성예시(미성년)<span class="test-tag">테스트용</span></button>
     <button class="btn ghost" id="btnReset">초기화</button>
     <button class="btn" id="btnPreview">미리보기</button>
     <button class="btn primary" id="btnPrint">인쇄 / PDF 저장</button>
@@ -366,8 +367,8 @@ function buildVals(){
 var STEP_HL={
   2:[[166,104,344,238]], 3:[[341,104,529,238]],
   4:[[166,238,344,338]], 5:[[341,238,529,338]],
-  6:[[72,405,529,471]],  7:[[72,338,529,405]],
-  8:[[72,655,529,795]],  9:[[72,471,529,571]]
+  6:[[72,338,529,405]],  7:[[72,405,529,471]],
+  8:[[72,471,529,571]],  9:[[72,655,529,795]]
 };
 function stepHighlights(X,Y){
   var boxes=STEP_HL[state.step]; if(!boxes) return "";
@@ -390,8 +391,8 @@ function renderForm(){
 
   // 형광펜: 인쇄 후 날인·서명해야 하는 칸 — 해당 칸에 내용이 있을 때만 표시
   var HI=[];
-  if(v.h_surKor||v.h_givenKor) HI.push([282,106,342,145]);  // ① 남편(부) 서명
-  if(v.w_surKor||v.w_givenKor) HI.push([468,106,528,145]);  // ① 아내(처) 서명
+  if(v.h_surKor||v.h_givenKor) HI.push([281,106,342,145]);  // ① 남편(부) 서명 (칸 280.9~342.5)
+  if(v.w_surKor||v.w_givenKor) HI.push([462,106,528,145]);  // ① 아내(처) 서명 (칸 462.0~528.1)
   if(v.wit1_name) HI.push([258,405,320,421]);  // ⑦ 증인1 서명
   if(v.wit2_name) HI.push([258,438,320,454]);  // ⑦ 증인2 서명
   // ⑧ 동의자(부모, 미성년 시 ②에서 자동) + 후견인 — 내용 있을 때만
@@ -495,15 +496,15 @@ var STEPS=[
   {n:5, short:"아내 부모", title:"② 아내(처)의 부모",
     q:"아내(처)의 부모님 정보를 입력하세요.",
     kind:"fields", fields:parentFields("w")},
-  {n:6, short:"증인", title:"⑦ 증인 2명",
+  {n:6, short:"신고항목", title:"신고 관련 항목", q:"해당하는 항목을 선택하세요.", kind:"choices"},
+  {n:7, short:"증인", title:"⑦ 증인 2명",
     q:"성년(만 19세 이상) 증인 2명의 정보를 입력하세요.",
     why:"혼인신고에는 성년 증인 2명의 서명 또는 날인이 필요합니다. 증인은 인쇄 후 직접 서명합니다.",
     kind:"fields", fields:WIT_FIELDS},
-  {n:7, short:"신고항목", title:"신고 관련 항목", q:"해당하는 항목을 선택하세요.", kind:"choices"},
-  {n:8, short:"인구동향", title:"인구동향조사(통계)", q:"통계청 인구동향조사 항목입니다.",
-    why:"성실응답 의무가 있는 통계 항목이며, 개인정보는 보호됩니다.", kind:"survey"},
-  {n:9, short:"출석·제출", title:"⑨⑩⑧ 출석·제출·동의",
+  {n:8, short:"출석·제출", title:"⑨⑩⑧ 출석·제출·동의",
     q:"출석 여부와 제출인을 확인하세요.", kind:"submit"},
+  {n:9, short:"인구동향", title:"인구동향조사(통계)", q:"통계청 인구동향조사 항목입니다.",
+    why:"성실응답 의무가 있는 통계 항목이며, 개인정보는 보호됩니다. 신고서 맨 뒤에 있는 항목입니다.", kind:"survey"},
   {n:10, short:"완료", title:"작성 내용 확인", q:"입력한 내용을 확인하세요.", kind:"summary"}
 ];
 var TOTAL=STEPS.length;
@@ -582,13 +583,21 @@ function renderStepBody(step){
     h+='<div class="q-help">신고인이 아닌 다른 사람이 제출할 때만 적습니다.</div>';
     h+=inputHtml({k:"sub_name", label:"제출인 성명", half:true});
     h+=inputHtml({k:"sub_jumin", label:"제출인 주민등록번호", type:"jumin", half:true})+'</div>';
-    // ⑧ 동의자 (미성년일 때 안내) — ② 부모(양부모) 입력 내용을 그대로 사용
+    // ⑧ 동의자 (미성년일 때 안내) — ② 부모(양부모)는 자동, 후견인은 아래에서 입력
     var minorH=isMinor("h"), minorW=isMinor("w");
     if(minorH||minorW){
       var who=[minorH?"남편(부)":"", minorW?"아내(처)":""].filter(Boolean).join("·");
       h+='<div class="note-box">⑧ 미성년자('+who+')가 혼인하는 경우 <b>부모(또는 후견인)의 동의</b>가 필요합니다. '
         +'<b>② 부모(양부모)</b>에 입력한 이름이 동의자란에 자동으로 표시됩니다. '
-        +'인쇄한 뒤 부모님(또는 후견인)께서 직접 서명·날인해 주세요.</div>';
+        +'부모가 아닌 <b>후견인</b>이 동의하는 경우에만 아래에 입력하세요. 서명·날인은 인쇄 후 직접 하시면 됩니다.</div>';
+      if(minorH){
+        h+=inputHtml({k:"h_gName", label:"남편 측 후견인 성명", half:true, help:"후견인이 동의하는 경우에만"});
+        h+=inputHtml({k:"h_gJumin", label:"남편 측 후견인 주민등록번호", type:"jumin", half:true});
+      }
+      if(minorW){
+        h+=inputHtml({k:"w_gName", label:"아내 측 후견인 성명", half:true, help:"후견인이 동의하는 경우에만"});
+        h+=inputHtml({k:"w_gJumin", label:"아내 측 후견인 주민등록번호", type:"jumin", half:true});
+      }
     }
   }
   else if(def.kind==="summary"){
@@ -728,7 +737,7 @@ function resetAll(){
     state=createEmptyState(); renderAll(); scrollTop();
   }
 }
-function fillSample(){
+function fillSample(kind){
   state=createEmptyState();
   Object.assign(state,{
     step:2,
@@ -749,6 +758,11 @@ function fillSample(){
     wit2_name:"성춘향", wit2_jumin:"8203022000000", wit2_addr:"경기도 안양시 …",
     attend_h:true, attend_w:true, cohabitDate:"2025.12.01"
   });
+  if(kind==="minor"){
+    // 남편을 미성년(만 15세)으로 → ⑧ 동의자란에 ② 부모(김철수·이순자)가 자동 표시됨
+    state.h_jumin="1103153000000"; state.h_birth="2011.03.15";
+    state.h_marType="초혼";
+  }
   renderAll(); scrollTop();
 }
 
@@ -764,7 +778,8 @@ function bind(){
   el.btnPrev.addEventListener("click", goPrev);
   el.btnSkip.addEventListener("click", skipStep);
   document.getElementById("btnReset").addEventListener("click", resetAll);
-  document.getElementById("btnSample").addEventListener("click", fillSample);
+  document.getElementById("btnSampleAdult").addEventListener("click", function(){ fillSample("adult"); });
+  document.getElementById("btnSampleMinor").addEventListener("click", function(){ fillSample("minor"); });
   document.getElementById("btnPrint").addEventListener("click", function(){ window.print(); });
   document.getElementById("btnPreview").addEventListener("click", openPreview);
   document.getElementById("btnPreviewMobile").addEventListener("click", openPreview);
