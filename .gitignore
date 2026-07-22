@@ -8,6 +8,7 @@ _*.html
 _*.png
 _*.pdf
 _*.js
+_*.json
 _hwpx/
 _hwpx_consent/
 
