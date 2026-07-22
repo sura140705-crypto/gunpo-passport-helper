@@ -12,6 +12,9 @@ _*.json
 _hwpx/
 _hwpx_consent/
 
+# 빌드 중간 산출물 (PDF에서 재생성 가능: python tools/prep-bg.py <이름> <서식.pdf>)
+engine/assets/*.b64
+
 # 로컬 설정 (개인 환경)
 .claude/settings.local.json
 

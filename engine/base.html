@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>민원 서식 작성 미리보기 도우미</title>
+<!--
+  ⚠️ 이 파일은 build-form.js 생성물입니다. 직접 수정하지 마세요.
+     소스: engine/base.html + engine/engine.js + forms/<이름>.config.js
+     재생성: node tools/build-form.js <이름>
+  - 단일 HTML 파일 · 외부 서버/라이브러리/CDN/폰트/이미지 없음
+  - 입력값은 브라우저 메모리에서만 처리 · 저장(localStorage 등) 안 함 · 새로고침 시 소멸
+  - 좌: 실제 서식 이미지 위에 값 오버레이 (실시간 반영) / 우: 단계별 간단 입력
+  - 작성 보조·미리보기용 (공식 접수 가능 여부 미보장)
+-->
+<style>
+  :root{
+    --blue:#1b5fc0; --blue-dark:#164e9e; --blue-light:#eaf1fb;
+    --line:#d5d9df; --bg:#f2f4f7; --muted:#5b626c; --ink:#1a1c1f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:"Malgun Gothic","맑은 고딕",system-ui,-apple-system,sans-serif;
+    font-size:17px;line-height:1.55;}
+
+  /* ===== 상단 바 ===== */
+  .topbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;
+    padding:14px 20px;background:#fff;border-bottom:2px solid var(--blue);
+    position:sticky;top:0;z-index:20;}
+  .brand{display:flex;flex-direction:column;margin-right:auto;}
+  .brand h1{margin:0;font-size:20px;color:var(--blue-dark);}
+  .brand .meta{font-size:14px;color:var(--muted);}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;}
+  .btn{font-family:inherit;font-size:16px;font-weight:600;border:1.5px solid var(--blue);
+    background:#fff;color:var(--blue);border-radius:10px;padding:11px 16px;cursor:pointer;
+    text-decoration:none;display:inline-flex;align-items:center;}
+  .btn:hover{background:var(--blue-light);}
+  .btn.primary{background:var(--blue);color:#fff;}
+  .btn.primary:hover{background:var(--blue-dark);}
+  .btn.ghost{border-color:var(--line);color:var(--muted);}
+  .btn.ghost:hover{background:var(--bg);}
+  .btn:disabled{opacity:.45;cursor:default;}
+  .test-tag{font-size:12px;color:#b26a00;background:#fff3e0;border:1px solid #ffd79a;
+    border-radius:6px;padding:2px 6px;margin-left:6px;}
+
+  /* ===== 2단 레이아웃 ===== */
+  .layout{display:flex;gap:22px;align-items:flex-start;padding:22px;max-width:1420px;margin:0 auto;}
+  .form-col{flex:1 1 auto;min-width:0;}
+  .panel-col{flex:0 0 400px;width:400px;}
+
+  /* ===== 좌측: 실제 서식 이미지 위에 값 오버레이 (여권 도우미와 동일 방식) ===== */
+  .paper{background:#fff;box-shadow:0 3px 14px rgba(0,0,0,.10);width:210mm;margin:0 auto;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .stage{position:relative;width:100%;container-type:inline-size;}
+  .stage .bg{display:block;width:100%;height:auto;}
+  .ovl{position:absolute;inset:0;pointer-events:none;}
+  /* 얹는 글자 = 검은 펜 느낌 */
+  .ov{position:absolute;transform:translate(-50%,-50%);color:#111;font-weight:700;line-height:1;white-space:nowrap;}
+  .ov.o{color:#c0392b;font-weight:900;-webkit-text-stroke:0.5px #c0392b;}  /* 선택항목 영표 ○ (진하게) */
+  .ov.t{transform:translateY(-50%);}            /* 좌측정렬 자유 텍스트(세로중앙; wrap 2줄도 칸 중앙) */
+  .ov.r{transform:translate(-100%,-50%);}       /* 우측정렬(기준점=우측 끝) */
+  /* 현재 단계 강조(화면 전용) */
+  .ovhl{position:absolute;background:rgba(27,95,192,.12);outline:1.6px solid #1b5fc0;border-radius:2px;pointer-events:none;}
+  /* 형광펜: 인쇄 후 날인·서명해야 하는 칸 (화면·인쇄 모두 표시) */
+  .ovhi{position:absolute;background:rgba(255,232,0,.55);border-radius:4px;pointer-events:none;
+    mix-blend-mode:multiply;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+
+  /* ===== 우측: 모바일형 입력 패널 ===== */
+  .phone{background:#fff;border:1px solid var(--line);border-radius:22px;
+    box-shadow:0 6px 22px rgba(0,0,0,.08);overflow:hidden;}
+  .phone-head{background:var(--blue);color:#fff;padding:16px 18px;}
+  .wiz-title{font-size:20px;font-weight:700;}
+  .wiz-count{font-size:14px;opacity:.9;margin-top:3px;}
+  .stepper{display:flex;margin-top:14px;}
+  .stp{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;min-width:0;}
+  .stp+.stp::before{content:"";position:absolute;top:12px;right:50%;width:100%;height:3px;
+    background:rgba(255,255,255,.30);z-index:0;}
+  .stp.done::before,.stp.cur::before{background:#fff;}
+  .stp-dot{position:relative;z-index:1;width:26px;height:26px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;
+    background:rgba(255,255,255,.25);color:#fff;border:2px solid transparent;
+    transition:transform .15s,background .15s;}
+  .stp.done .stp-dot{background:#fff;color:var(--blue);}
+  .stp.cur .stp-dot{background:#fff;color:var(--blue-dark);border-color:#bfe0ff;
+    transform:scale(1.18);box-shadow:0 0 0 4px rgba(255,255,255,.28);}
+  .stp-lab{font-size:9.5px;line-height:1.2;margin-top:5px;text-align:center;
+    color:rgba(255,255,255,.72);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  .stp.cur .stp-lab{color:#fff;font-weight:700;}
+  .stp.nav .stp-dot{cursor:pointer;}
+  .stp.nav .stp-dot:hover{background:#eaf3ff;}
+  .wiz-body{padding:18px;max-height:calc(100vh - 320px);overflow:auto;}
+
+  .coach-q{font-size:22px;font-weight:800;line-height:1.35;margin-bottom:8px;}
+  .coach-sub{font-size:15.5px;color:var(--muted);margin-bottom:14px;line-height:1.6;}
+  .why-box{display:flex;gap:8px;font-size:15.5px;color:#1c4e86;background:#eef6ff;
+    border:1px solid #cfe2f7;border-radius:10px;padding:11px 13px;margin-bottom:16px;line-height:1.6;}
+  .why-box .ic{flex:none;}
+  .note-box{font-size:15px;color:#7a5b00;background:#fff8e6;border:1px solid #f2dd9c;
+    border-radius:10px;padding:11px 13px;margin-bottom:16px;line-height:1.6;}
+
+  .field{margin-bottom:16px;}
+  .field.half{display:inline-block;width:calc(50% - 5px);}
+  .field.half + .field.half{margin-left:8px;}
+  .field-label{display:block;font-size:16px;font-weight:700;margin-bottom:7px;}
+  .fb{font-size:12px;border-radius:6px;padding:1px 7px;font-weight:700;margin-left:6px;vertical-align:middle;}
+  .fb-req{color:#c0392b;background:#fdecec;border:1px solid #f3b4b4;}
+  .fb-opt{color:#5b626c;background:#eef1f5;border:1px solid #d5d9df;}
+  .q-help{font-size:14px;color:var(--muted);margin:-2px 0 8px;line-height:1.5;}
+  .text-input{width:100%;font-family:inherit;font-size:17px;padding:12px 13px;border:1.6px solid var(--line);
+    border-radius:10px;background:#fff;color:var(--ink);}
+  .text-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(27,95,192,.18);outline:none;}
+
+  .opts{display:flex;flex-direction:column;gap:9px;margin-bottom:6px;}
+  .opts.row{flex-direction:row;flex-wrap:wrap;}
+  .opt{font-family:inherit;font-size:16.5px;text-align:left;padding:13px 15px;border:1.8px solid var(--line);
+    border-radius:12px;background:#fff;color:var(--ink);cursor:pointer;font-weight:600;}
+  .opts.row .opt{flex:1 1 auto;text-align:center;}
+  .opt:hover{border-color:var(--blue);background:var(--blue-light);}
+  .opt.sel{border-color:var(--blue);background:var(--blue);color:#fff;}
+  .opt small{display:block;font-size:13px;font-weight:500;opacity:.85;margin-top:2px;}
+
+  .step-warn{padding:0 18px;min-height:8px;color:#c0392b;font-size:15px;font-weight:600;}
+  .step-warn:not(:empty){padding:10px 18px;}
+  .wiz-nav{display:flex;gap:10px;padding:14px 18px 18px;}
+  .wiz-nav .btn{flex:1;justify-content:center;}
+  .link-skip{display:block;width:100%;text-align:center;background:none;border:none;color:var(--muted);
+    font-family:inherit;font-size:14.5px;text-decoration:underline;cursor:pointer;padding:4px 0 12px;}
+
+  .sum-sec{margin-bottom:14px;}
+  .sum-sec h4{margin:0 0 6px;font-size:15px;color:var(--blue-dark);border-bottom:1px solid var(--blue-light);padding-bottom:4px;}
+  .sum-row{display:flex;gap:8px;font-size:15px;padding:3px 0;}
+  .sum-row .k{flex:0 0 118px;color:var(--muted);}
+  .sum-row .val{flex:1;font-weight:600;}
+  .sum-row .val.empty{color:#c0392b;font-weight:600;}
+  .info-box{font-size:15px;color:#0d5a34;background:#e9f7ef;border:1px solid #bfe6cf;
+    border-radius:10px;padding:12px 14px;margin:14px 0;line-height:1.6;}
+
+  .screen-notice{margin-top:18px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;}
+  .screen-notice h3{margin:0 0 8px;font-size:16px;color:var(--blue-dark);}
+  .screen-notice ul{margin:0;padding-left:20px;}
+  .screen-notice li{font-size:14.5px;color:#333;line-height:1.65;}
+
+  :focus-visible{outline:3px solid var(--blue);outline-offset:2px;}
+
+  /* ===== 반응형: 좁은 화면 = 입력 패널만 (서식은 미리보기 버튼) ===== */
+  .m-preview{display:none;}
+  @media (max-width:900px){
+    .layout{flex-direction:column;padding:14px;}
+    .panel-col{flex:1 1 auto;width:100%;order:1;}
+    .form-col{display:none;order:2;}
+    .m-preview{display:block;width:calc(100% - 36px);margin:0 18px 4px;font-family:inherit;
+      font-size:16px;font-weight:700;color:var(--blue);background:var(--blue-light);
+      border:1.5px solid var(--blue);border-radius:10px;padding:12px;cursor:pointer;}
+    .actions .btn.hide-m{display:none;}
+  }
+
+  /* ===== 미리보기 모달 ===== */
+  .modal-back{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;display:none;
+    flex-direction:column;padding:14px;}
+  body.pv-open .modal-back{display:flex;}
+  .modal-top{display:flex;justify-content:space-between;align-items:center;color:#fff;gap:10px;padding:4px 2px 10px;}
+  .modal-top b{font-size:18px;}
+  .modal-scroll{flex:1;overflow:auto;display:flex;justify-content:center;background:#5a5a5a;padding:12px;border-radius:8px;}
+  .modal-scroll .paper{width:min(210mm,96vw);height:max-content;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+
+  /* ===== 인쇄 ===== */
+  @media print{
+    @page{size:A4;margin:0;}
+    .topbar,.panel-col,.m-preview,.modal-back,.ovhl{display:none !important;}
+    .layout{display:block;padding:0;}
+    .form-col{display:block !important;}
+    .paper{box-shadow:none;width:auto;margin:0;padding:0;}
+    .ov{color:#000 !important;}
+    .ov.o{color:#c0392b !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <h1 id="docTitle"></h1>
+    <div class="meta"><span id="orgName"></span> · <span id="today"></span></div>
+  </div>
+  <div class="actions">
+    <a class="btn ghost" href="index.html" title="민원 서식 목록으로 돌아갑니다">← 서식 목록</a>
+    <button class="btn ghost hide-m" id="btnSampleAdult"></button>
+    <button class="btn ghost hide-m" id="btnSampleMinor"></button>
+    <button class="btn ghost" id="btnReset">초기화</button>
+    <button class="btn" id="btnPreview">미리보기</button>
+    <button class="btn primary" id="btnPrint">인쇄 / PDF 저장</button>
+  </div>
+</header>
+
+<div class="layout">
+  <section class="form-col" aria-label="서식 미리보기">
+    <div class="paper"><div class="stage"><img class="bg" alt="서식"><div class="ovl" id="ovl"></div></div></div>
+  </section>
+
+  <aside class="panel-col">
+    <div class="phone">
+      <div class="phone-head">
+        <div class="wiz-title" id="wizTitle"></div>
+        <div class="wiz-count" id="wizCount"></div>
+        <div class="stepper" id="stepper" role="progressbar" aria-valuemin="1" aria-valuemax="10" aria-valuenow="1"></div>
+      </div>
+      <div class="wiz-body" id="wizBody" aria-live="polite"></div>
+      <div class="step-warn" id="stepWarn" role="status"></div>
+      <button type="button" class="m-preview" id="btnPreviewMobile">🔍 완성된 서식 미리보기</button>
+      <div class="wiz-nav">
+        <button class="btn ghost" id="btnPrev">← 이전</button>
+        <button class="btn primary" id="btnNext">다음 →</button>
+      </div>
+      <button type="button" class="link-skip" id="btnSkip">이 단계는 잘 모르겠어요 · 나중에 창구에서</button>
+    </div>
+    <div class="screen-notice">
+      <h3>이용 안내</h3>
+      <ul>
+        <li>본 도구는 서식 작성을 돕기 위한 미리보기 도구입니다.</li>
+        <li>입력한 내용은 서버로 전송되지 않으며 저장되지 않습니다.</li>
+        <li>공식 신고서와 항목·배치가 다를 수 있습니다.</li>
+        <li>실제 접수 가능 여부와 필요 서류는 담당 직원의 확인을 따릅니다.</li>
+        <li>서명·날인은 인쇄한 뒤 본인이 직접 해야 합니다.</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+
+<div class="modal-back" id="modalBack">
+  <div class="modal-top"><b id="modalTitle"></b>
+    <button class="btn" id="btnCloseModal">닫기 ✕</button></div>
+  <div class="modal-scroll"><div class="paper"><div class="stage"><img class="bg" alt="서식"><div class="ovl" id="ovlModal"></div></div></div></div>
+</div>
+
+<script>
+"use strict";
+var FORM_IMG="__BGDATA__";
+/* =====================================================================
+   FORM 설정 (build-form.js 주입: forms/<이름>.config.js)
+   ===================================================================== */
+/*{{CONFIG}}*/
+/* =====================================================================
+   공통 엔진 (build-form.js 주입: engine/engine.js)
+   ===================================================================== */
+/*{{ENGINE}}*/
+</script>
+</body>
+</html>
