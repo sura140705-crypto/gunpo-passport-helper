@@ -723,8 +723,13 @@ function requiredMissing(step){
   }
   return miss;
 }
+// 인쇄 직전 알림: 여백 없음·배율 100%(실제 크기)로 인쇄해야 서식이 정확히 출력됨
+function doPrint(){
+  alert("🖨️ 인쇄 전 확인해 주세요\n\n인쇄 창에서 아래를 맞춰 주세요.\n\n  • 여백(Margins) : 없음\n  • 배율(Scale) : 100% (실제 크기)\n     ※ ‘맞춤(Fit)’ · ‘축소’ 아님\n\n실제 크기로 인쇄해야 서식이 정확하게 출력됩니다.\n[확인]을 누르면 인쇄 창이 열립니다.");
+  window.print();
+}
 function goNext(){
-  if(state.step===TOTAL){ window.print(); return; }
+  if(state.step===TOTAL){ doPrint(); return; }
   var miss=requiredMissing(state.step);
   if(miss.length){
     el.stepWarn.textContent="다음 항목을 입력해 주세요: "+miss.join(", ");
@@ -826,7 +831,7 @@ function bind(){
   document.getElementById("btnReset").addEventListener("click", resetAll);
   document.getElementById("btnSampleAdult").addEventListener("click", function(){ fillSample("wed"); });
   document.getElementById("btnSampleMinor").addEventListener("click", function(){ fillSample("unwed"); });
-  document.getElementById("btnPrint").addEventListener("click", function(){ window.print(); });
+  document.getElementById("btnPrint").addEventListener("click", function(){ doPrint(); });
   document.getElementById("btnPreview").addEventListener("click", openPreview);
   document.getElementById("btnPreviewMobile").addEventListener("click", openPreview);
   document.getElementById("btnCloseModal").addEventListener("click", closePreview);
