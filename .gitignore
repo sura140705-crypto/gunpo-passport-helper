@@ -9,6 +9,8 @@ _*.png
 _*.pdf
 _*.js
 _*.json
+_*.py
+_*.b64
 _hwpx/
 _hwpx_consent/
 
