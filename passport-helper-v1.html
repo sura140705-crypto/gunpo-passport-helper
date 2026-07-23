@@ -318,6 +318,9 @@
   .cdate .cv{font-weight:700;}
   .csign{font-size:10pt;}
   .csign-tag{margin-left:8mm;color:#333;}
+  /* (서명 날인) 형광 표기 — 인쇄에도 유지 */
+  .csign-hl{background:rgba(255,232,0,.6);border-radius:3px;padding:1px 5px;color:#111;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .cminister{margin-top:6mm;font-size:12pt;}
   .cminister b{font-size:14pt;font-weight:800;}
   .cnotice{margin-top:10mm;border:1px solid #222;}
@@ -990,7 +993,7 @@ function renderConsent(){
 
   h+='<div class="cstmt">본인(들)은 신청인(신고인)의 법정대리인으로서 위의 동의 구분에 따른 신청(신고)에 동의합니다.</div>';
   h+='<div class="cdate"><span class="cv">'+now.getFullYear()+'</span> 년 &nbsp; <span class="cv">'+(now.getMonth()+1)+'</span> 월 &nbsp; <span class="cv">'+now.getDate()+'</span> 일</div>';
-  h+='<div class="csign">법정대리인(부모가 공동친권자인 경우는 공동친권자 중 대표자)<span class="csign-tag">(서명 날인)</span></div>';
+  h+='<div class="csign">법정대리인(부모가 공동친권자인 경우는 공동친권자 중 대표자)<span class="csign-tag csign-hl">(서명 날인)</span></div>';
   h+='<div class="cminister"><b>외교부장관</b> 귀하</div>';
   h+='<div class="cnotice"><div class="cnotice-h">유 의 사 항</div>'+
      '<div class="cnotice-b">법정대리인이 공동친권자인 경우 공동친권자인 부모 모두의 동의가 필요합니다. '+
