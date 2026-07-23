@@ -1051,6 +1051,18 @@ function renderProxy(){
   document.querySelectorAll(".proxy-body").forEach(function(b){ b.innerHTML=h; });
 }
 
+// 인쇄 직전 알림: 여백 없음·배율 100%(실제 크기). 여권 판독기가 정확히 읽으려면 실제 크기 인쇄 필수.
+function doPrint(){
+  alert("🖨️ 인쇄 전 확인해 주세요\n\n"
+    + "인쇄 창에서 아래 두 가지를 꼭 맞춰 주세요.\n\n"
+    + "  • 여백(Margins) : 없음\n"
+    + "  • 배율(Scale) : 100% (실제 크기)\n"
+    + "     ※ ‘맞춤(Fit)’ · ‘축소’로 하면 안 됩니다.\n\n"
+    + "실제 크기로 인쇄해야 여권 판독기가 정확히 읽습니다.\n"
+    + "[확인]을 누르면 인쇄 창이 열립니다.");
+  window.print();
+}
+
 // 미리보기 모달 (크게 보고 인쇄 확인)
 function openPreview(){
   closePreview();
@@ -1067,7 +1079,7 @@ function openPreview(){
   document.body.appendChild(m);
   document.body.classList.add("pv-open");
   m.querySelector(".bg").src=FORM_IMG;
-  m.querySelector("#pvPrint").addEventListener("click",function(){ window.print(); });
+  m.querySelector("#pvPrint").addEventListener("click",function(){ doPrint(); });
   m.querySelector("#pvClose").addEventListener("click",closePreview);
   m.addEventListener("click",function(e){ if(e.target===m) closePreview(); });
   document.addEventListener("keydown",pvEsc);
@@ -1327,7 +1339,7 @@ function bindWizardEvents(){
     const dunno=e.target.closest('[data-act="dunno"]');
     if(dunno){ state.unsure[state.step]=true; if(state.step<TOTAL_STEPS) state.step++; renderAll(); scrollPanelTop(); return; }
     const pr=e.target.closest('[data-act="print"]');
-    if(pr){ window.print(); return; }
+    if(pr){ doPrint(); return; }
     const sug=e.target.closest('[data-act="suggest"]');
     if(sug){ state.data[sug.getAttribute("data-field")]=sug.getAttribute("data-val"); renderAll(); return; }
     const opt=e.target.closest('[data-act="opt"]');
@@ -1381,7 +1393,7 @@ function tryAdvance(){
 function bindGlobalEvents(){
   el.btnPrev.addEventListener("click", function(){ if(state.step>1){ state.step--; renderAll(); scrollPanelTop(); } });
   el.btnNext.addEventListener("click", function(){ if(state.step<TOTAL_STEPS && tryAdvance()){ state.step++; renderAll(); scrollPanelTop(); } });
-  document.getElementById("btnPrint").addEventListener("click", function(){ window.print(); });
+  document.getElementById("btnPrint").addEventListener("click", function(){ doPrint(); });
   document.getElementById("btnReset").addEventListener("click", function(){
     if(confirm("입력한 모든 내용을 지우고 처음부터 다시 시작할까요?")){ state=createEmptyState(); renderAll(); scrollPanelTop(); }
   });
